@@ -1,0 +1,47 @@
+name: rollback
+
+# Manually redeploy a previous image to production.
+# Find the tag (7-character commit SHA) in the ci-cd run history or in the registry.
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to roll back to (short commit SHA)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    name: Roll back production
+    if: vars.AZURE_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Redeploy previous image
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}:${IMAGE_TAG}"
+          az containerapp update \
+            --name "${{ vars.APP_NAME }}-production" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --image "$IMAGE"
+      - name: Smoke test
+        run: |
+          FQDN=$(az containerapp show \
+            --name "${{ vars.APP_NAME }}-production" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          bash scripts/smoke-test.sh "https://${FQDN}"
