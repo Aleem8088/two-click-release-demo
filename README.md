@@ -74,8 +74,9 @@ az group delete --name rg-two-click-demo --yes
 ```
 
 ## Status of this demo
-- ✅ Lint and unit tests pass locally.
-- ⏳ Docker image build, GitHub Actions run and the Azure deploy are being validated (see the repo's Actions tab for live results).
+- ✅ Lint and unit tests pass, locally and in GitHub Actions.
+- ✅ Docker image builds and is pushed to GHCR by the pipeline (see the Actions tab).
+- ⏳ The staging/production deploy jobs are written but not yet exercised against a live Azure subscription; they are skipped until `AZURE_DEPLOY=true`.
 - The Azure setup script follows the Azure CLI docs but should be read before you run it.
 
 ## What I'd adapt for your project
